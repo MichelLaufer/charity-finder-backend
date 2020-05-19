@@ -56,7 +56,7 @@ const Charity = mongoose.model("Charity", {
 
 // Defines the port the app will run on. Defaults to 8080, but can be 
 // overridden when starting the server. For example: PORT=9000 npm start
-const port = process.env.PORT || 8080
+const port = process.env.PORT || 8081
 const app = express()
 
 // Add middlewares to enable cors and json body parsing
@@ -113,6 +113,28 @@ app.get('/users/:userId', (req, res) => {
     res.status(201).json(req.body.user)
   } catch(err) {
     res.status(400).json({ message: 'Could not find user', errors: err.errors})
+  }
+})
+
+// Updating favorites for a logged-in user
+app.put('/users/:userId', async (req, res) => {
+  try {
+    const { userId, charityId, charityTitle, favoriteStatus } = req.body
+    const savedCharity = await Charity.findOne({ userId: req.body.userId, charityId: req.body.charityId })
+    if (savedCharity) {
+      const updated = await savedCharity.findOneAndUpdate({ userId: req.body.userId, charityId: req.body.charityId }, req.body, { new: true })
+      res.status(201).json(updated)
+    } else {
+      const likedCharity = new Charity({ userId, charityId, charityTitle, favoriteStatus })
+      const saved = await likedCharity.save()
+      await User.findOneAndUpdate(
+        { _id: userId },
+        { $push: { charities: saved}}
+      )
+      res.status(201).json(saved)
+    }
+  } catch (err) {
+    res.status(400).json({ message: 'Could not add to favorites', errors: err.errors })
   }
 })
 
