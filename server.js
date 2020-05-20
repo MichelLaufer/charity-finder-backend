@@ -47,7 +47,10 @@ const Charity = mongoose.model("Charity", {
   projectId: {
     type: Number
   },
-  addedFavorite: {
+  projectTitle: {
+    type: String
+  },
+  favoriteStatus: {
     type: Boolean,
     default: false
   }
@@ -111,7 +114,7 @@ app.get('/users/:userId', authenticateUser)
 app.get('/users/:userId', (req, res) => {
   try {
     res.status(201).json(req.body.user)
-  } catch(err) {
+  } catch (err) {
     res.status(400).json({ message: 'Could not find user', errors: err.errors})
   }
 })
@@ -119,13 +122,13 @@ app.get('/users/:userId', (req, res) => {
 // Updating favorites for a logged-in user
 app.put('/users/:userId', async (req, res) => {
   try {
-    const { userId, charityId, charityTitle, favoriteStatus } = req.body
-    const savedCharity = await Charity.findOne({ userId: req.body.userId, charityId: req.body.charityId })
+    const { userId, projectId, projectTitle, favoriteStatus } = req.body
+    const savedCharity = await Charity.findOne({ userId: req.body.userId, projectId: req.body.projectId })
     if (savedCharity) {
-      const updated = await savedCharity.findOneAndUpdate({ userId: req.body.userId, charityId: req.body.charityId }, req.body, { new: true })
+      const updated = await savedCharity.findOneAndUpdate({ userId: req.body.userId, projectId: req.body.projectId }, req.body, { new: true })
       res.status(201).json(updated)
     } else {
-      const likedCharity = new Charity({ userId, charityId, charityTitle, favoriteStatus })
+      const likedCharity = new Charity({ userId, projectId, projectTitle, favoriteStatus })
       const saved = await likedCharity.save()
       await User.findOneAndUpdate(
         { _id: userId },
@@ -137,6 +140,46 @@ app.put('/users/:userId', async (req, res) => {
     res.status(400).json({ message: 'Could not add to favorites', errors: err.errors })
   }
 })
+
+// Get a list of another user's added favorites
+app.get('/users/:userId/otherUser', async (req, res) => {
+  try {
+    const name = await User.findOne({ _id: req.params.userId })
+    const otherUser = await Charity.find({ userId: req.params.userId })
+    res.status(201).json({ otherUser, name: name.name })
+  } catch (err) {
+    res.status(400).json({ message: 'error', errors: err.errors })
+  }
+})
+
+// Get user-specific lists with query "favorite"
+app.get('/users/:userId/charities', async (req, res) => {
+  const { favoriteStatus, projectId } = req.query
+
+  // Puts favoriteStatus-query into an object
+  const buildingFavoriteStatusQuery = (favoriteStatus) => {
+    let findFavoriteStatus = {}
+    if (favoriteStatus) {
+      findFavoriteStatus.favoriteStatus = favoriteStatus
+    }
+    return findFavoriteStatus
+  }
+
+  if (!projectId) {
+    const lists = await Charity.find({ userId: req.params.userId })
+      .find(buildingFavoriteStatusQuery(favoriteStatus))
+
+    if (lists.length > 0) {
+      res.json(lists)
+    } else {
+      res.status(404).json({ message: 'No projects added as favorites yet'})
+    }
+  } if (projectId) {
+    const favoriteCharity = await Charity.findOne({ userId: req.params.userId, projectId: projectId })
+    res.json(favoriteCharity)
+  }
+})
+
 
 // Start the server
 app.listen(port, () => {
