@@ -125,7 +125,7 @@ app.put('/users/:userId', async (req, res) => {
     const { userId, projectId, projectTitle, favoriteStatus } = req.body
     const savedCharity = await Charity.findOne({ userId: req.body.userId, projectId: req.body.projectId })
     if (savedCharity) {
-      const updated = await savedCharity.findOneAndUpdate({ userId: req.body.userId, projectId: req.body.projectId }, req.body, { new: true })
+      const updated = await Charity.findOneAndUpdate({ userId: req.body.userId, projectId: req.body.projectId }, req.body, { new: true })
       res.status(201).json(updated)
     } else {
       const likedCharity = new Charity({ userId, projectId, projectTitle, favoriteStatus })
@@ -138,6 +138,24 @@ app.put('/users/:userId', async (req, res) => {
     }
   } catch (err) {
     res.status(400).json({ message: 'Could not add to favorites', errors: err.errors })
+  }
+})
+
+// Get a list of all the users
+app.get('/users', async (req, res) => {
+  const { name } = req.query
+  console.log("Search user")
+  const nameRegex = new RegExp(name, "i")
+  let otherUser
+  try {
+    if (name) {
+      otherUser = await User.find({ name: nameRegex })
+    } else {
+      otherUser = await User.find()
+    } 
+    res.status(201).json(otherUser)
+  } catch (err) {
+    res.status(400).json({ message: 'error', errors: err.errors })
   }
 })
 
@@ -157,7 +175,7 @@ app.get('/users/:userId/charities', async (req, res) => {
   const { favoriteStatus, projectId } = req.query
 
   // Puts favoriteStatus-query into an object
-  const buildingFavoriteStatusQuery = (favoriteStatus) => {
+  const buildFavoriteStatusQuery = (favoriteStatus) => {
     let findFavoriteStatus = {}
     if (favoriteStatus) {
       findFavoriteStatus.favoriteStatus = favoriteStatus
@@ -167,7 +185,7 @@ app.get('/users/:userId/charities', async (req, res) => {
 
   if (!projectId) {
     const lists = await Charity.find({ userId: req.params.userId })
-      .find(buildingFavoriteStatusQuery(favoriteStatus))
+      .find(buildFavoriteStatusQuery(favoriteStatus))
 
     if (lists.length > 0) {
       res.json(lists)
