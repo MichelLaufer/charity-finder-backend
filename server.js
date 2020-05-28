@@ -55,8 +55,7 @@ const Charity = mongoose.model("Charity", {
     default: false
   }, 
   donationAmount: {
-    type: Number,
-    default: 0
+    type: Number
   }
 })
 
@@ -174,22 +173,25 @@ app.get('/users/:userId/otherUser', async (req, res) => {
   }
 })
 
-// Get user-specific lists with query "favorite"
+// Get user-specific lists with queries "favorite" and "donationamount"
 app.get('/users/:userId/charities', async (req, res) => {
-  const { favoriteStatus, projectId } = req.query
+  const { favoriteStatus, donationAmount, projectId } = req.query
 
   // Puts favoriteStatus-query into an object
-  const buildFavoriteStatusQuery = (favoriteStatus) => {
+  const buildFavoriteStatusQuery = (favoriteStatus, donationAmount) => {
     let findFavoriteStatus = {}
     if (favoriteStatus) {
       findFavoriteStatus.favoriteStatus = favoriteStatus
+    }
+    if (donationAmount) {
+      findFavoriteStatus.donationAmount = donationAmount
     }
     return findFavoriteStatus
   }
 
   if (!projectId) {
     const lists = await Charity.find({ userId: req.params.userId })
-      .find(buildFavoriteStatusQuery(favoriteStatus))
+      .find(buildFavoriteStatusQuery(favoriteStatus, donationAmount))
 
     if (lists.length > 0) {
       res.json(lists)
