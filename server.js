@@ -53,6 +53,10 @@ const Charity = mongoose.model("Charity", {
   favoriteStatus: {
     type: Boolean,
     default: false
+  }, 
+  donationAmount: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -122,13 +126,13 @@ app.get('/users/:userId', (req, res) => {
 // Updating favorites for a logged-in user
 app.put('/users/:userId', async (req, res) => {
   try {
-    const { userId, projectId, projectTitle, favoriteStatus } = req.body
+    const { userId, projectId, projectTitle, favoriteStatus, donationAmount } = req.body
     const savedCharity = await Charity.findOne({ userId: req.body.userId, projectId: req.body.projectId })
     if (savedCharity) {
       const updated = await Charity.findOneAndUpdate({ userId: req.body.userId, projectId: req.body.projectId }, req.body, { new: true })
       res.status(201).json(updated)
     } else {
-      const likedCharity = new Charity({ userId, projectId, projectTitle, favoriteStatus })
+      const likedCharity = new Charity({ userId, projectId, projectTitle, favoriteStatus, donationAmount })
       const saved = await likedCharity.save()
       await User.findOneAndUpdate(
         { _id: userId },
