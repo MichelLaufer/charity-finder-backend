@@ -33,6 +33,10 @@ const User = mongoose.model('User', {
     type: String,
     default: () => crypto.randomBytes(128).toString('hex')
   },
+  budget: {
+    type: Number, 
+    default: 0
+  },
   charities: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: "Charity"
@@ -91,8 +95,8 @@ app.get('/', (req, res) => {
 // Create user
 app.post('/users', async (req, res) => {
   try {
-    const { name, email, password } = req.body 
-    const user = new User({ name, email, password: bcrypt.hashSync(password)})
+    const { name, email, password, budget } = req.body 
+    const user = new User({ name, email, budget, password: bcrypt.hashSync(password)})
     const saved = await user.save()
     res.status(201).json(saved)
   } catch (err) {
@@ -129,13 +133,14 @@ app.get('/users/:userId', (req, res) => {
 // Updating favorites for a logged-in user
 app.put('/users/:userId', async (req, res) => {
   try {
-    const { userId, projectId, projectTitle, favoriteStatus, donationAmount, donationBudget } = req.body
+    const { userId, projectId, projectTitle, favoriteStatus, donationAmount, donationBudget, budget } = req.body
+    await User.updateOne({ '_id': userId }, req.body, { accessToken: req.header("Authorization")})
     const savedCharity = await Charity.findOne({ userId: req.body.userId, projectId: req.body.projectId })
     if (savedCharity) {
       const updated = await Charity.findOneAndUpdate({ userId: req.body.userId, projectId: req.body.projectId }, req.body, { new: true })
       res.status(201).json(updated)
     } else {
-      const likedCharity = new Charity({ userId, projectId, projectTitle, favoriteStatus, donationAmount, donationBudget })
+      const likedCharity = new Charity({ userId, projectId, projectTitle, favoriteStatus, donationAmount, donationBudget, budget })
       const saved = await likedCharity.save()
       await User.findOneAndUpdate(
         { _id: userId },
@@ -147,6 +152,7 @@ app.put('/users/:userId', async (req, res) => {
     res.status(400).json({ message: 'Could not add to favorites', errors: err.errors })
   }
 })
+
 
 // Get a list of all the users
 app.get('/users', async (req, res) => {
@@ -206,6 +212,13 @@ app.get('/users/:userId/charities', async (req, res) => {
     const favoriteCharity = await Charity.findOne({ userId: req.params.userId, projectId: projectId })
     res.json(favoriteCharity)
   }
+})
+
+// Get a user's budget
+app.get('/users/:userId', async (req, res) => {
+  const { budget } = req.params
+  const findBudget = await User.findOne({_id: req.params.userId, budget})
+  res.json(findBudget)
 })
 
 
