@@ -215,10 +215,9 @@ app.get('/users/:userId/charities', async (req, res) => {
 })
 
 // Get a user's budget
-app.get('/users/:userId', async (req, res) => {
-  const { budget } = req.params
-  const findBudget = await User.findOne({_id: req.params.userId, budget})
-  res.json(findBudget)
+app.get('/users/:userId/budget', async (req, res) => {
+  const user = await User.findOne({_id: req.params.userId})
+  res.json(user.budget)
 })
 
 
