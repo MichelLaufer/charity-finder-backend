@@ -59,7 +59,8 @@ const Charity = mongoose.model("Charity", {
     default: false
   }, 
   donationAmount: {
-    type: Number
+    type: Number,
+    default: 0
   }, 
   donationBudget: {
     type: Boolean,
@@ -208,11 +209,24 @@ app.get('/users/:userId/charities', async (req, res) => {
     } else {
       res.status(404).json({ message: 'No projects added as favorites yet'})
     }
-  } if (projectId) {
+  } 
+  if (projectId) {
     const favoriteCharity = await Charity.findOne({ userId: req.params.userId, projectId: projectId })
     res.json(favoriteCharity)
   }
 })
+
+// Get a user's projects with a donation amount larger than 0
+app.get('/users/:userId/donations', async (req, res) => {
+    const lists = await Charity.find({ userId: req.params.userId })
+      .find({donationAmount: {$gt: 0}} )
+    if (lists.length > 0) {
+      res.json(lists)
+    } else {
+      res.status(404).json({ message: 'No projects added to budget yet'})
+    }
+})
+
 
 // Get a user's budget
 app.get('/users/:userId/budget', async (req, res) => {
