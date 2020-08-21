@@ -71,8 +71,13 @@ const port = process.env.PORT || 8081
 const app = express()
 
 // Add middlewares to enable cors and json body parsing
-app.use(cors())
+// app.use(cors())
 app.use(bodyParser.json())
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*')
+  next()
+})
+
 
 const authenticateUser = async (req, res, next) => {
   const user = await User.findOne({ accessToken: req.header('Authorization')})
