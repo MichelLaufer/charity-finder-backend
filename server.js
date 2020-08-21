@@ -61,10 +61,6 @@ const Charity = mongoose.model("Charity", {
   donationAmount: {
     type: Number,
     default: 0
-  }, 
-  donationBudget: {
-    type: Boolean,
-    default: false
   }
 })
 
@@ -134,14 +130,14 @@ app.get('/users/:userId', (req, res) => {
 // Updating favorites for a logged-in user
 app.put('/users/:userId', async (req, res) => {
   try {
-    const { userId, projectId, projectTitle, favoriteStatus, donationAmount, donationBudget, budget } = req.body
+    const { userId, projectId, projectTitle, favoriteStatus, donationAmount, budget } = req.body
     await User.updateOne({ '_id': userId }, req.body, { accessToken: req.header("Authorization")})
     const savedCharity = await Charity.findOne({ userId: req.body.userId, projectId: req.body.projectId })
     if (savedCharity) {
       const updated = await Charity.findOneAndUpdate({ userId: req.body.userId, projectId: req.body.projectId }, req.body, { new: true })
       res.status(201).json(updated)
     } else {
-      const likedCharity = new Charity({ userId, projectId, projectTitle, favoriteStatus, donationAmount, donationBudget, budget })
+      const likedCharity = new Charity({ userId, projectId, projectTitle, favoriteStatus, donationAmount, budget })
       const saved = await likedCharity.save()
       await User.findOneAndUpdate(
         { _id: userId },
@@ -184,25 +180,22 @@ app.get('/users/:userId/otherUser', async (req, res) => {
   }
 })
 
-// Get user-specific lists with queries "favorite" and "donationamount"
+// Get user-specific lists with query "favorite" 
 app.get('/users/:userId/charities', async (req, res) => {
-  const { favoriteStatus, donationBudget, projectId } = req.query
+  const { favoriteStatus, projectId } = req.query
 
   // Puts favoriteStatus-query into an object
-  const buildFavoriteStatusQuery = (favoriteStatus, donationBudget) => {
+  const buildFavoriteStatusQuery = (favoriteStatus) => {
     let findFavoriteStatus = {}
     if (favoriteStatus) {
       findFavoriteStatus.favoriteStatus = favoriteStatus
-    }
-    if (donationBudget) {
-      findFavoriteStatus.donationBudget = donationBudget
     }
     return findFavoriteStatus
   }
 
   if (!projectId) {
     const lists = await Charity.find({ userId: req.params.userId })
-      .find(buildFavoriteStatusQuery(favoriteStatus, donationBudget))
+      .find(buildFavoriteStatusQuery(favoriteStatus))
 
     if (lists.length > 0) {
       res.json(lists)
